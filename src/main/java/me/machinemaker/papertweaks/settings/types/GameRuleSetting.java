@@ -22,7 +22,6 @@ package me.machinemaker.papertweaks.settings.types;
 import java.util.Objects;
 import me.machinemaker.papertweaks.cloud.dispatchers.CommandDispatcher;
 import me.machinemaker.papertweaks.settings.Setting;
-import org.bukkit.Bukkit;
 import org.bukkit.GameRule;
 import org.bukkit.World;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -31,8 +30,6 @@ import org.incendo.cloud.parser.standard.BooleanParser;
 import org.incendo.cloud.parser.standard.IntegerParser;
 
 public record GameRuleSetting<T>(GameRule<T> gameRule, ArgumentParser<CommandDispatcher, T> argumentParser) implements Setting<T, World> {
-
-    private static final World OVERWORLD = Objects.requireNonNull(Bukkit.getWorlds().get(0), "no overworld found");
 
     public static GameRuleSetting<Boolean> ofBoolean(final GameRule<Boolean> gameRule) {
         return new GameRuleSetting<>(gameRule, new BooleanParser<>(false));
@@ -67,7 +64,7 @@ public record GameRuleSetting<T>(GameRule<T> gameRule, ArgumentParser<CommandDis
 
     @Override
     public T defaultValue() {
-        return Objects.requireNonNull(OVERWORLD.getGameRuleDefault(this.gameRule), "how does a gamerule have a null default, stupid bukkit"); // All worlds have the same default values
+        return Objects.requireNonNull(this.gameRule.getDefaultValue(), "how does a gamerule have a null default, stupid bukkit"); // All worlds have the same default values
     }
 
     @Override

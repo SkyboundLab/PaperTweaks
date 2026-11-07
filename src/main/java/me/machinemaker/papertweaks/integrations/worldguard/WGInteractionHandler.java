@@ -49,7 +49,7 @@ public class WGInteractionHandler implements Interactions.Handler {
         if (!result) {
             localPlayer.printRaw(query.queryValue(localPlayer.getLocation(), localPlayer, Flags.DENY_MESSAGE).replace("%what%", "use that"));
             if (WORLD_GUARD_PLUGIN.get().getConfigManager().particleEffects) {
-                player.playEffect(clickedBlock.getLocation().add(0, 1, 0), Effect.SMOKE, BlockFace.UP);
+                player.playEffect(clickedBlock.getLocation().add(0, 1, 0), Effect.SMOKE_SHOOT, BlockFace.UP);
             }
             return false;
         }

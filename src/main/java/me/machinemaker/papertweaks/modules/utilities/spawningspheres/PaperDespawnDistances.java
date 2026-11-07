@@ -22,15 +22,16 @@ package me.machinemaker.papertweaks.modules.utilities.spawningspheres;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.util.concurrent.Callables;
+import java.lang.reflect.Field;
+import java.util.Map;
+import java.util.OptionalInt;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import me.machinemaker.mirror.Mirror;
-import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
-import org.bukkit.configuration.ConfigurationSection;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 class PaperDespawnDistances implements DespawnDistances {
@@ -42,7 +43,7 @@ class PaperDespawnDistances implements DespawnDistances {
         try {
             final @Nullable Class<?> paperWorldConfigClass = Mirror.maybeGetClass("io.papermc.paper.configuration.WorldConfiguration");
             if (paperWorldConfigClass != null) {
-                hardDespawnDistanceFunction = new PerCategoryDespawnDistances();
+                hardDespawnDistanceFunction = new PerCategoryDespawnDistances(paperWorldConfigClass);
             } else {
                 throw new IllegalArgumentException("Old version");
             }
@@ -74,18 +75,77 @@ class PaperDespawnDistances implements DespawnDistances {
         }
     }
 
-    // WorldConfiguration.java per-category despawn distances
+    // WorldConfiguration.java per-category despawn distances, read from the
+    // world's live WorldConfiguration instead of the deprecated
+    // Server.Spigot#getPaperConfig() YAML view. The value read is
+    // entities.spawning.despawn-ranges.monster.hard, resolved the same way
+    // the server resolves it (a configured value, or 128 when it is "default").
     static class PerCategoryDespawnDistances implements Function<World, Callable<Integer>> {
 
-        static final String PATH = "entities.spawning.despawn-ranges.monster.hard";
+        private final Class<?> worldConfigurationClass;
+
+        PerCategoryDespawnDistances(final Class<?> worldConfigurationClass) {
+            this.worldConfigurationClass = worldConfigurationClass;
+        }
 
         @Override
         public Callable<Integer> apply(final World world) {
-            final @Nullable ConfigurationSection worlds = Bukkit.getServer().spigot().getPaperConfig().getConfigurationSection("__________WORLDS__________");
-            if (worlds != null) {
-                return Callables.returning(worlds.getInt(world.getName() + "." + PATH, worlds.getInt("__defaults__." + PATH, 128)));
+            return () -> readMonsterHardDespawnDistance(world);
+        }
+
+        private int readMonsterHardDespawnDistance(final World world) {
+            try {
+                // CraftWorld#getHandle() -> ServerLevel, which holds the
+                // world's WorldConfiguration in a field
+                final Object handle = world.getClass().getMethod("getHandle").invoke(world);
+                final Object worldConfiguration = findFieldOfType(handle, this.worldConfigurationClass);
+                if (worldConfiguration == null) {
+                    return 128;
+                }
+                final Object spawning = getField(getField(worldConfiguration, "entities"), "spawning");
+                @SuppressWarnings("unchecked")
+                final Map<Object, Object> despawnRanges = (Map<Object, Object>) getField(spawning, "despawnRanges");
+                final Class<?> mobCategoryClass = Class.forName("net.minecraft.world.entity.MobCategory");
+                @SuppressWarnings({"unchecked", "rawtypes"})
+                final Object monster = Enum.valueOf((Class<Enum>) mobCategoryClass, "MONSTER");
+                final Object pair = despawnRanges.get(monster);
+                if (pair == null) {
+                    return 128;
+                }
+                // DespawnRangePair is a record: hard() -> DespawnRange, whose
+                // horizontalLimit is an IntOr$Default record holding an
+                // OptionalInt (empty when the config value is "default")
+                final Object hard = pair.getClass().getMethod("hard").invoke(pair);
+                final Field horizontalLimitField = hard.getClass().getDeclaredField("horizontalLimit");
+                horizontalLimitField.setAccessible(true);
+                final Object horizontalLimit = horizontalLimitField.get(hard);
+                final OptionalInt value = (OptionalInt) horizontalLimit.getClass().getMethod("value").invoke(horizontalLimit);
+                return value.orElse(128);
+            } catch (final ReflectiveOperationException | ClassCastException exception) {
+                SpawningSpheres.LOGGER.warn("Could not read the monster hard despawn distance for " + world.getKey() + ", falling back to 128", exception);
+                return 128;
             }
-            return Callables.returning(128); // fallback to default
+        }
+
+        private static @Nullable Object findFieldOfType(final Object object, final Class<?> type) throws IllegalAccessException {
+            Class<?> clazz = object.getClass();
+            while (clazz != null) {
+                for (final Field field : clazz.getDeclaredFields()) {
+                    if (type.isAssignableFrom(field.getType())) {
+                        field.setAccessible(true);
+                        final Object value = field.get(object);
+                        if (value != null) {
+                            return value;
+                        }
+                    }
+                }
+                clazz = clazz.getSuperclass();
+            }
+            return null;
+        }
+
+        private static Object getField(final Object object, final String name) throws ReflectiveOperationException {
+            return object.getClass().getField(name).get(object);
         }
     }
 }

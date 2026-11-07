@@ -32,7 +32,7 @@ class CauldronListener implements ModuleListener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntityInsideBlock(final EntityInsideBlockEvent event) {
-        if (event.getEntity() instanceof final Item item && event.getBlock().getType() == Material.WATER_CAULDRON && Tag.CONCRETE_POWDER.isTagged(item.getItemStack().getType())) {
+        if (event.getEntity() instanceof final Item item && event.getBlock().getType() == Material.WATER_CAULDRON && Tag.CONCRETE_POWDERS.isTagged(item.getItemStack().getType())) {
             item.getWorld().dropItem(item.getLocation(), new ItemStack(CauldronConcrete.toConcreteFromPowder(item.getItemStack().getType()), item.getItemStack().getAmount()));
             item.remove();
         }

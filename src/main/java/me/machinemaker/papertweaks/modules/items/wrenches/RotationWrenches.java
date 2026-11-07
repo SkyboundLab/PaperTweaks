@@ -21,6 +21,7 @@ package me.machinemaker.papertweaks.modules.items.wrenches;
 
 import java.net.URI;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import me.machinemaker.papertweaks.annotations.ModuleInfo;
@@ -39,6 +40,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.components.CustomModelDataComponent;
 import org.bukkit.persistence.PersistentDataType;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -72,7 +74,9 @@ public class RotationWrenches extends ModuleBase {
         wrench.editMeta(meta -> {
             meta.displayName(text(ITEM_NAME, style(TextDecoration.ITALIC.withState(false))));
             meta.setUnbreakable(true);
-            meta.setCustomModelData(RotationWrenches.RESOURCE_PACK_MODEL_DATA);
+            final CustomModelDataComponent customModelData = meta.getCustomModelDataComponent();
+            customModelData.setFloats(List.of((float) RotationWrenches.RESOURCE_PACK_MODEL_DATA));
+            meta.setCustomModelDataComponent(customModelData);
             meta.getPersistentDataContainer().set(RotationWrenches.WRENCH_PDC_KEY, PersistentDataType.BOOLEAN, true);
         });
         WRENCH_RECIPE = new ShapedRecipe(RotationWrenches.WRENCH_RECIPE_KEY, wrench)
@@ -91,7 +95,7 @@ public class RotationWrenches extends ModuleBase {
             return true;
         }
         // legacy migration
-        if (stack.getType() == Material.CARROT_ON_A_STICK && ITEM_NAME.equals(PlainTextComponentSerializer.plainText().serializeOrNull(meta.displayName())) && meta.hasCustomModelData() && meta.getCustomModelData() == RESOURCE_PACK_MODEL_DATA) {
+        if (stack.getType() == Material.CARROT_ON_A_STICK && ITEM_NAME.equals(PlainTextComponentSerializer.plainText().serializeOrNull(meta.displayName())) && meta.hasCustomModelDataComponent() && meta.getCustomModelDataComponent().getFloats().contains((float) RESOURCE_PACK_MODEL_DATA)) {
             meta.getPersistentDataContainer().set(WRENCH_PDC_KEY, PersistentDataType.BOOLEAN, true);
             stack.setItemMeta(meta);
             return true;

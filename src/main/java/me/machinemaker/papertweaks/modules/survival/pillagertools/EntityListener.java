@@ -25,7 +25,6 @@ import org.bukkit.entity.Pillager;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.CreatureSpawnEvent;
-import org.bukkit.event.entity.EntityPotionEffectEvent;
 
 class EntityListener implements ModuleListener {
 
@@ -47,11 +46,4 @@ class EntityListener implements ModuleListener {
             }
         }
     }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onStatusEffectChange(final EntityPotionEffectEvent event) {
-        if (!this.config.badOmen && event.getCause() == EntityPotionEffectEvent.Cause.PATROL_CAPTAIN)
-            event.setCancelled(true);
-    }
-
 }

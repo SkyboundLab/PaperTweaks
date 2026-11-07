@@ -53,7 +53,6 @@ public class PillagerTools extends ModuleBase {
 
     enum ToggleOption {
         PATROLS,
-        PATROL_LEADERS,
-        BAD_OMEN
+        PATROL_LEADERS
     }
 }

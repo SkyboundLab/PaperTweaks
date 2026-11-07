@@ -1,7 +1,7 @@
 name: PaperTweaks
 version: ${version}
 main: me.machinemaker.papertweaks.PaperTweaks
-api-version: "1.20"
+api-version: "26.3"
 authors:
   - Machine_Maker
 description: A replacement for the VanillaTweaks datapack

@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.Set;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
-import org.bukkit.GameRule;
+import org.bukkit.GameRules;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -63,7 +63,7 @@ final class SleepContext {
     }
 
     static double getSleepingPercentage(final World world) {
-        return Math.max(requireNonNull(world.getGameRuleValue(GameRule.PLAYERS_SLEEPING_PERCENTAGE)), 100) / 100D;
+        return Math.max(requireNonNull(world.getGameRuleValue(GameRules.PLAYERS_SLEEPING_PERCENTAGE)), 100) / 100D;
     }
 
     public long sleepingCount() {
