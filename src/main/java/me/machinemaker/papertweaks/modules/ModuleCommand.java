@@ -30,7 +30,9 @@ import java.lang.annotation.Target;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Function;
+import me.machinemaker.papertweaks.PaperTweaks;
 import me.machinemaker.papertweaks.adventure.TranslationRegistry;
 import me.machinemaker.papertweaks.cloud.MetaKeys;
 import me.machinemaker.papertweaks.cloud.ModulePermission;
@@ -119,7 +121,21 @@ public abstract class ModuleCommand extends PaperTweaksCommand {
 
     final void unregisterCommands(final PaperCommandManager<CommandDispatcher> commandManager) {
         this.lifecycle = null;
-        this.rootCommands.forEach(commandManager::deleteRootCommand);
+        for (final String rootCommand : this.rootCommands) {
+            try {
+                commandManager.deleteRootCommand(rootCommand);
+            } catch (final RejectedExecutionException e) {
+                // deleteRootCommand resends the updated command tree to every
+                // online player, and on Paper 26.3 that resend submits to the
+                // command dispatcher's executor. If the executor is already
+                // shut down (e.g. the plugin is being disabled while the
+                // server is stopping), the resend is pointless anyway - the
+                // players are about to be disconnected. Swallow it so one
+                // root's failed resend doesn't abort unregistering the rest
+                // of this module's commands or the whole module disable.
+                PaperTweaks.LOGGER.debug("Failed to resend commands while unregistering '{}' (server is likely stopping)", rootCommand, e);
+            }
+        }
     }
 
     void checkValid() {
