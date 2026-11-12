@@ -75,11 +75,6 @@ class PaperDespawnDistances implements DespawnDistances {
         }
     }
 
-    // WorldConfiguration.java per-category despawn distances, read from the
-    // world's live WorldConfiguration instead of the deprecated
-    // Server.Spigot#getPaperConfig() YAML view. The value read is
-    // entities.spawning.despawn-ranges.monster.hard, resolved the same way
-    // the server resolves it (a configured value, or 128 when it is "default").
     static class PerCategoryDespawnDistances implements Function<World, Callable<Integer>> {
 
         private final Class<?> worldConfigurationClass;
@@ -95,30 +90,36 @@ class PaperDespawnDistances implements DespawnDistances {
 
         private int readMonsterHardDespawnDistance(final World world) {
             try {
-                // CraftWorld#getHandle() -> ServerLevel, which holds the
-                // world's WorldConfiguration in a field
                 final Object handle = world.getClass().getMethod("getHandle").invoke(world);
+
                 final Object worldConfiguration = findFieldOfType(handle, this.worldConfigurationClass);
                 if (worldConfiguration == null) {
                     return 128;
                 }
+
                 final Object spawning = getField(getField(worldConfiguration, "entities"), "spawning");
+
                 @SuppressWarnings("unchecked")
                 final Map<Object, Object> despawnRanges = (Map<Object, Object>) getField(spawning, "despawnRanges");
+
                 final Class<?> mobCategoryClass = Class.forName("net.minecraft.world.entity.MobCategory");
+
                 @SuppressWarnings({"unchecked", "rawtypes"})
                 final Object monster = Enum.valueOf((Class<Enum>) mobCategoryClass, "MONSTER");
+
                 final Object pair = despawnRanges.get(monster);
                 if (pair == null) {
                     return 128;
                 }
-                // DespawnRangePair is a record: hard() -> DespawnRange, whose
-                // horizontalLimit is an IntOr$Default record holding an
-                // OptionalInt (empty when the config value is "default")
+
                 final Object hard = pair.getClass().getMethod("hard").invoke(pair);
+
                 final Field horizontalLimitField = hard.getClass().getDeclaredField("horizontalLimit");
+
                 horizontalLimitField.setAccessible(true);
+
                 final Object horizontalLimit = horizontalLimitField.get(hard);
+
                 final OptionalInt value = (OptionalInt) horizontalLimit.getClass().getMethod("value").invoke(horizontalLimit);
                 return value.orElse(128);
             } catch (final ReflectiveOperationException | ClassCastException exception) {

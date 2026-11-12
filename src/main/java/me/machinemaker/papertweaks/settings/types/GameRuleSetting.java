@@ -64,7 +64,7 @@ public record GameRuleSetting<T>(GameRule<T> gameRule, ArgumentParser<CommandDis
 
     @Override
     public T defaultValue() {
-        return Objects.requireNonNull(this.gameRule.getDefaultValue(), "how does a gamerule have a null default, stupid bukkit"); // All worlds have the same default values
+        return Objects.requireNonNull(this.gameRule.getDefaultValue(), "how does a gamerule have a null default, stupid bukkit");
     }
 
     @Override

@@ -102,24 +102,18 @@ public abstract class ModuleLifecycle {
 
     final void disable(final boolean changeState, final boolean isShutdown) {
         try {
-            // Don't unregister commands during server shutdown: Bukkit discards
-            // every command registration anyway, and on Paper 26.3
-            // deleteRootCommand resends the command tree to all online players
-            // via Commands.sendCommands, which submits to the command
-            // dispatcher's executor - already shut down by the time plugins
-            // are disabled during stopServer. That throws
-            // RejectedExecutionException for every module with commands,
-            // logs "Failed to disable <module>" and aborts the rest of that
-            // module's disable (listeners, recipes, onDisable).
             if (!isShutdown) {
                 this.disableCommands();
             }
+
             this.unregisterListeners();
             this.unregisterRecipes();
             this.onDisable(isShutdown);
+
             if (changeState) this.state = ModuleState.DISABLED;
         } catch (final Exception e) {
             PaperTweaks.LOGGER.error("Failed to disable {}", this.moduleInfo.name(), e);
+
             if (changeState) this.state = ModuleState.DISABLE_FAILED;
         }
     }

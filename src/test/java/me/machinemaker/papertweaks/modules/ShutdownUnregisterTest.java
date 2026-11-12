@@ -41,11 +41,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Regression tests for the shutdown {@link RejectedExecutionException}:
- * on Paper 26.3, deleting a root command resends the command tree to every
- * online player via {@code Commands.sendCommands}, which submits to the
- * command dispatcher's executor. During {@code stopServer} that executor
- * is already shut down, so every module with commands failed to disable.
+ * Regression test: on Paper 26.3, removing a command while the server is
+ * stopping crashes with RejectedExecutionException, because the command
+ * executor is already shut down by then.
  */
 @SuppressWarnings("unchecked")
 class ShutdownUnregisterTest {
@@ -82,23 +80,23 @@ class ShutdownUnregisterTest {
     void disableSkipsUnregisterOnShutdownButNotOtherwise() throws Exception {
         final Server mockServer = mock(Server.class);
         when(mockServer.getOnlinePlayers()).thenReturn(List.of());
-        // Bukkit.setServer() can only be called once per JVM and MixinsTest
-        // already sets it, so install the mock reflectively only if no
-        // server is registered yet; otherwise reuse the registered one
-        // (Mockito returns an empty collection for getOnlinePlayers()).
+
         final Field serverField = Bukkit.class.getDeclaredField("server");
         serverField.setAccessible(true);
         if (serverField.get(null) == null) {
             serverField.set(null, mockServer);
         }
+
         final JavaPlugin plugin = mock(JavaPlugin.class);
         when(plugin.getServer()).thenReturn(mockServer);
 
         final TestCommand command = new TestCommand();
         rootCommands(command).add("root-one");
+
         final PaperCommandManager<CommandDispatcher> manager = mock(PaperCommandManager.class);
         final TestLifecycle lifecycle = new TestLifecycle(plugin, Set.of(command));
         setField(lifecycle, "commandManager", manager);
+
         final ModuleInfo moduleInfo = mock(ModuleInfo.class);
         when(moduleInfo.name()).thenReturn("Test");
         setField(lifecycle, "moduleInfo", moduleInfo);

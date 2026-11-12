@@ -125,14 +125,6 @@ public abstract class ModuleCommand extends PaperTweaksCommand {
             try {
                 commandManager.deleteRootCommand(rootCommand);
             } catch (final RejectedExecutionException e) {
-                // deleteRootCommand resends the updated command tree to every
-                // online player, and on Paper 26.3 that resend submits to the
-                // command dispatcher's executor. If the executor is already
-                // shut down (e.g. the plugin is being disabled while the
-                // server is stopping), the resend is pointless anyway - the
-                // players are about to be disconnected. Swallow it so one
-                // root's failed resend doesn't abort unregistering the rest
-                // of this module's commands or the whole module disable.
                 PaperTweaks.LOGGER.debug("Failed to resend commands while unregistering '{}' (server is likely stopping)", rootCommand, e);
             }
         }
